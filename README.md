@@ -267,10 +267,19 @@ out of the box once you add the device:
 - "Net-SNMP - Get Mounted Partitions" (dskTable).
 - "Net-SNMP - Get Device I/O" (diskIOTable).
 
-For private-subtree metrics, clone Cacti's "SNMP - Generic OID
-Template" data + graph templates and point each at a specific OID.
-To label graphs, walk the relevant `Name`/`Iface` column first to see
-which row is which (varies by hardware / mesh topology).
+For private-subtree metrics, use Cacti's "SNMP - Generic OID Template"
+data + graph templates and point each at a specific OID. To label
+graphs, walk the relevant `Name`/`Iface` column first to see which row
+is which (varies by hardware / mesh topology).
+
+**Cacti gotcha:** Cacti hides a graph template from the
+`graphs_new.php` dropdown after its first use on a device, *unless* the
+template has **Multiple Instances** enabled. Before creating multiple
+private-subtree graphs from "SNMP - Generic OID Template" on the same
+device, edit the template (Templates → Graph Templates → "SNMP -
+Generic OID Template") and tick the **Multiple Instances** checkbox.
+The "DD-WRT - Temperature" template (used for the temperature
+instances) already has it enabled.
 
 Per-instance scalar OIDs worth graphing:
 
