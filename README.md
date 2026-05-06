@@ -31,6 +31,12 @@ layout, different shell environment.
 
 - **RT-AX57** (productid `RT-AX3000N`), firmware 3.0.0.4 build 386,
   Linux 4.19.183 ARMv7, Broadcom-based (both `wl` and `iw` present).
+- **RT-BE82M / RT-BE82U** (productid `RT-BE82M`), firmware 3.0.0.6 build
+  102 (39254-gc155c5b), Linux 4.19.294 ARMv7, Broadcom-based with
+  `broadcomThermalDrv` SoC sensor; both `wl` and `iw` present, single
+  `/sys/class/thermal/thermal_zone0` for SoC plus per-radio
+  `wl phy_tempsense`. `bridge` (iproute2) is absent on this firmware
+  but `brctl showmacs br0` works as on RT-AX57.
 
 The same code should work on any stock-firmware ASUS router that exposes a busybox
 shell over telnet/SSH. Per-platform quirks (which `nvram` keys exist,
@@ -192,7 +198,17 @@ Columns: Index / Name / Source / Celsius / Raw. Probes:
 - Broadcom legacy: `/proc/dmu/temperature`.
 
 Discovery-driven — a router with N distinct sensors gets N rows. On
-RT-AX57 this yields 3 rows (2.4 GHz radio, 5 GHz radio, SoC).
+RT-AX57 this yields 3 rows (2.4 GHz radio, 5 GHz radio, SoC); the
+RT-BE82M also yields 3 (5 GHz radio, 2.4 GHz radio, SoC).
+
+**Per-radio row ordering varies between devices.** Rows are emitted in
+`iw dev` probe order sorted by PHY number, which the kernel chooses
+based on driver init order — *not* by frequency. On RT-AX57 the 2.4 GHz
+radio is index 1 and 5 GHz is index 2; on RT-BE82M the order is reversed
+(5 GHz at index 1, 2.4 GHz at index 2). Walk the `Name` column
+(`.2.1.1.2.<idx>`) on a new device before labeling Cacti/Grafana graphs
+that hardcode the index. Same caveat applies to the channel-stats table
+(`.6`) since it deduplicates by the same PHY.
 
 #### .3 wireless client table — `asusWlClientTable`
 
@@ -328,11 +344,14 @@ sketch lives in the project notes.
   `cd ... && echo thermal_zone*` — busybox `echo` never emits color
   codes. Anywhere you add a probe that parses `ls` output, prefer the
   same trick.
-- **Wireless interface naming on Broadcom ASUS hardware.** The primary
-  BSSes live on `eth*` interfaces (e.g. `eth2` = 2.4 GHz, `eth3` =
-  5 GHz on RT-AX57); guest VAPs live on `wl0.1` / `wl1.1`. Per-radio
-  probes (temperature, channel stats) dedupe by PHY to avoid querying
-  guest VAPs for data that's identical to the primary BSS.
+- **Wireless interface naming on Broadcom ASUS hardware.** Primary BSS
+  names vary by model — RT-AX57 uses `eth2` / `eth3` for the 2.4 / 5
+  GHz radios with guest VAPs on `wl0.1` / `wl1.1`; RT-BE82M uses
+  `wl0` / `wl1` for the primary radios with guest VAPs on `wl0.1`,
+  `wl0.2`, `wl1.1`, `wl1.2` etc. Either pattern flows naturally through
+  `iw dev` discovery. Per-radio probes (temperature, channel stats)
+  dedupe by PHY to avoid querying guest VAPs for data that's identical
+  to the primary BSS.
 
 ## Project layout
 
